@@ -1,5 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from dotenv import load_dotenv
@@ -32,9 +34,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Initialize the SQLAlchemy database object. This is our 'db' connection.
 db = SQLAlchemy(app)
 
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login' 
+login_manager.login_message_category = 'info' # for styling flash messages
 # --- 3. DEFINE DATABASE MODELS (TABLES) ---
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     # Set the table name 
     __tablename__ = 'user'
     
@@ -80,13 +86,58 @@ class Transaction(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 
+# --- 3.2. FLASK-LOGIN USER LOADER ---
 
-# --- NEW CODE ---
+@login_manager.user_loader
+def load_user(user_id):
+    # This function is used by Flask-Login to reload the user object from the session
+    return User.query.get(int(user_id))
+
 
 # --- 3.5. DEFINE ROUTES (WEB PAGES) ---
 
 # This is the 'decorator' that tells Flask what URL to listen for.
 # The '/' means the main homepage (like http://127.0.0.1:5000/)
+
+# NEW LOGIN ROUTE
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    # If user is already logged in, send them to the homepage
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        # --- This is the POST logic ---
+        username = request.form['username']
+        password = request.form['password']
+
+        # 1. Find the user in the database by their username
+        user = User.query.filter_by(username=username).first()
+
+        # 2. Check if user exists and if the password is correct
+        if user and bcrypt.check_password_hash(user.password_hash, password):
+            # 3. If correct, log the user in
+            login_user(user, remember=True) # 'remember=True' keeps them logged in
+            flash('Login successful!', 'success')
+
+            # Send them to the homepage
+            return redirect(url_for('home'))
+        else:
+            # If a-ha, show an error
+            flash('Login unsuccessful. Please check username and password.', 'danger')
+
+    # --- This is the GET logic ---
+    return render_template('login.html')
+
+# NEW LOGOUT ROUTE
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('home'))
+
 @app.route('/')
 def home():
     # This is the function that runs when someone visits '/'
@@ -106,7 +157,7 @@ def register():
         password = request.form['password']
 
         # 2. Hash the password for security
-        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
         # 3. Create a new User object and save to database
         new_user = User(

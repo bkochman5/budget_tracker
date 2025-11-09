@@ -18,8 +18,19 @@
 <body>
 
     <h1>Welcome to Your Budget Tracker!</h1>
-    <p>This is a real HTML page served by Flask application.</p>
-    <a href="{{ url_for('register') }}">Go to Register Page</a>
+
+    {% if current_user.is_authenticated %}
+
+        <h3>Hello, {{ current_user.username }}!</h3>
+        <a href="{{ url_for('logout') }}">Logout</a>
+
+    {% else %}
+
+        <p>Please log in or register to use the app.</p>
+        <a href="{{ url_for('login') }}">Login</a> | 
+        <a href="{{ url_for('register') }}">Register</a>
+
+    {% endif %}
 
 </body>
 </html>
