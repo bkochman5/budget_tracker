@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from dotenv import load_dotenv
@@ -88,7 +88,7 @@ class Transaction(db.Model):
 def home():
     # This is the function that runs when someone visits '/'
     # For now, it just returns a simple string.
-    return "Hello, World! This is the homepage for the budget tracker."
+    return render_template('index.html')
 
 # --- END OF NEW CODE ---
 
