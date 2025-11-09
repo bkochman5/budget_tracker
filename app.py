@@ -1,8 +1,9 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
 
 # Load the .env file
 load_dotenv()
@@ -10,6 +11,8 @@ load_dotenv()
 # Configuration
 
 app = Flask(__name__)
+
+app.config['SECRET_KEY'] = 'secret_key_to_change' #session security and flash messages
 
 # Database configuration
 db_password = os.getenv('DB_PASSWORD')
@@ -90,7 +93,49 @@ def home():
     # For now, it just returns a simple string.
     return render_template('index.html')
 
-# --- END OF NEW CODE ---
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    # This function  handle both GET (display form) and POST (submit form)
+
+    if request.method == 'POST':
+        # --- This is the POST logic ---
+        # 1. Get data from the form
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+
+        # 2. Hash the password for security
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+
+        # 3. Create a new User object and save to database
+        new_user = User(
+            username=username, 
+            email=email, 
+            password_hash=hashed_password
+        )
+
+        try:
+            # Add the new user to the session and commit
+            db.session.add(new_user)
+            db.session.commit()
+
+            # Send a success message to the user
+            flash('Account created successfully! You can now log in.', 'success')
+
+            # Redirect to the homepage
+            return redirect(url_for('home'))
+
+        except Exception as e:
+            # This 'except' block will catch errors, e.g., if the username is already taken
+            db.session.rollback() # Rollback the changes
+            flash(f'Error creating account: {e}. Please try again.', 'danger')
+            return redirect(url_for('register'))
+
+    # --- This is the GET logic ---
+    # If the method is GET, just show the registration page
+    return render_template('register.html')
+
 
 # --- 4. RUN THE APPLICATION (FOR TESTING) ---
 
