@@ -144,6 +144,45 @@ def home():
     # For now, it just returns a simple string.
     return render_template('index.html')
 
+# NEW CATEGORIES ROUTE
+
+@app.route('/categories', methods=['GET', 'POST'])
+@login_required  # This is the decorator to protect the route
+def categories():
+    if request.method == 'POST':
+        # --- This is the POST logic (form submitted) ---
+
+        # 1. Get data from the form
+        name = request.form['name']
+        type = request.form['type']
+
+        # 2. Check if this category already exists for this user
+        existing_category = Category.query.filter_by(user_id=current_user.id, name=name).first()
+
+        if existing_category:
+            flash('This category name already exists.', 'danger')
+        else:
+            # 3. Create a new Category object
+            new_category = Category(
+                name=name,
+                type=type,
+                user_id=current_user.id  # Link the category to the logged-in user
+            )
+
+            # 4. Add to database
+            db.session.add(new_category)
+            db.session.commit()
+            flash('Category added successfully!', 'success')
+
+        # 5. Redirect back to this same page (to clear the form)
+        return redirect(url_for('categories'))
+
+    # --- This is the GET logic (page loaded) ---
+    # 1. Fetch all categories that belong to the current logged-in user
+    user_categories = Category.query.filter_by(user_id=current_user.id).all()
+
+    # 2. Render the HTML, passing in the list of categories
+    return render_template('categories.html', categories=user_categories)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
