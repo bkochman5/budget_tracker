@@ -1,65 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Budget Tracker</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .container { display: flex; gap: 40px; }
-        .form-section { flex: 1; }
-        .list-section { flex: 2; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input, select { width: 100%; max-width: 300px; padding: 8px; }
-        button { padding: 10px 15px; background-color: #28a745; color: white; border: none; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f4f4; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-    <h1>Your Dashboard</h1>
-    <p>Welcome, {{ current_user.username }}!</p>
-    <a href="{{ url_for('categories') }}">Manage Categories</a> | 
-    <a href="{{ url_for('logout') }}">Logout</a>
-    <hr>
+{% block title %}Dashboard{% endblock %}
 
-    <div class="container">
-        <div class="form-section">
+{% block content %}
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Your Dashboard</h1>
+        <span class="fs-5">Welcome, {{ current_user.username }}!</span>
+    </div>
+    
+    <div class="row g-5"> <div class="col-md-4">
             <h2>Add New Transaction</h2>
-            <form action="{{ url_for('dashboard') }}" method="POST">
-                <div class="form-group">
-                    <label for="amount">Amount (£)</label>
-                    <input type="number" step="0.01" id="amount" name="amount" required>
+            
+            <form action="" method="POST">
+                <div class="mb-3"> <label for="amount" class="form-label">Amount (£)</label>
+                    <input type="number" step="0.01" id="amount" name="amount" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <input type="text" id="description" name="description" required>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <input type="text" id="description" name="description" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label for="category">Category</label>
-                    
-                    <select id="category" name="category_id" required>
+                <div class="mb-3">
+                    <label for="category" class="form-label">Category</label>
+                    <select id="category" name="category_id" class="form-select" required>
                         <option value="">-- Select a Category --</option>
                         {% for category in categories %}
                             <option value="{{ category.id }}">{{ category.name }} ({{ category.type }})</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="date">Date</label>
-                    <input type="date" id="date" name="transaction_date" required>
+                <div class="mb-3">
+                    <label for="date" class="form-label">Date</label>
+                    <input type="date" id="date" name="transaction_date" class="form-control" required>
                 </div>
-                <button type="submit">Add Transaction</button>
+                <button type="submit" class="btn btn-success">Add Transaction</button>
             </form>
         </div>
 
-        <div class="list-section">
+        <div class="col-md-8">
             <h2>Your Transactions</h2>
-            <table>
-                <thead>
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
                     <tr>
                         <th>Date</th>
                         <th>Description</th>
@@ -74,7 +55,13 @@
                             <td>{{ transaction.transaction_date.strftime('%Y-%m-%d') }}</td>
                             <td>{{ transaction.description }}</td>
                             <td>{{ transaction.category.name }}</td>
-                            <td>{{ transaction.category.type }}</td>
+                            <td>
+                                {% if transaction.category.type == 'Expense' %}
+                                    <span class="badge bg-danger">{{ transaction.category.type }}</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ transaction.category.type }}</span>
+                                {% endif %}
+                            </td>
                             <td>£{{ "%.2f"|format(transaction.amount) }}</td>
                         </tr>
                     {% else %}
@@ -87,5 +74,4 @@
         </div>
     </div>
 
-</body>
-</html>
+{% endblock %}
