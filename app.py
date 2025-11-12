@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, date
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash
 
@@ -140,10 +140,71 @@ def logout():
 
 @app.route('/')
 def home():
-    # This is the function that runs when someone visits '/'
-    # For now, it just returns a simple string.
+    """
+    This is the main homepage.
+    It checks if a user is logged in.
+    If they are, it redirects them to their dashboard.
+    If not, it shows the public landing page (index.html).
+    """
+    if current_user.is_authenticated:
+        # User is logged in, send them to the main app
+        return redirect(url_for('dashboard'))
+    
+    # User is not logged in, show the public homepage
     return render_template('index.html')
 
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required  # Protects this page, user must be logged in
+def dashboard():
+    """
+    This route handles both displaying the dashboard (GET)
+    and adding a new transaction (POST).
+    """
+    
+    if request.method == 'POST':
+        # --- POST LOGIC: User is submitting the 'Add Transaction' form ---
+        
+        # 1. Get all data from the form
+        amount = request.form['amount']
+        description = request.form['description']
+        category_id = request.form['category_id']
+        # The date comes from the form as a string, e.g., "2025-11-09"
+        date_string = request.form['transaction_date'] 
+        
+        # 2. Convert the date string into a Python 'date' object
+        transaction_date = datetime.strptime(date_string, '%Y-%m-%d').date()
+
+        # 3. Create the new Transaction object
+        new_transaction = Transaction(
+            amount=amount,
+            description=description,
+            transaction_date=transaction_date,
+            user_id=current_user.id,    # Link to the logged-in user
+            category_id=category_id     # Link to the chosen category
+        )
+        
+        # 4. Add to database and save
+        db.session.add(new_transaction)
+        db.session.commit()
+        
+        flash('Transaction added successfully!', 'success')
+        
+        # 5. Redirect back to the dashboard to refresh the page
+        return redirect(url_for('dashboard'))
+
+    # --- GET LOGIC: User is just visiting the page ---
+    
+    # 1. Fetch all categories for the current user
+    #    We need this to populate the dropdown menu in the form.
+    user_categories = Category.query.filter_by(user_id=current_user.id).all()
+    
+    # 2. Fetch all transactions for the current user
+    #    We 'order_by' to show the newest ones first.
+    user_transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.transaction_date.desc()).all()
+
+    # 3. Render the dashboard page
+    #    We pass both lists (categories and transactions) to the HTML.
+    return render_template('dashboard.html', categories=user_categories, transactions=user_transactions)
 # NEW CATEGORIES ROUTE
 
 @app.route('/categories', methods=['GET', 'POST'])
