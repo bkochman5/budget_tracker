@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
@@ -206,6 +206,38 @@ def dashboard():
     #    We pass both lists (categories and transactions) to the HTML.
     return render_template('dashboard.html', categories=user_categories, transactions=user_transactions)
 # NEW CATEGORIES ROUTE
+
+# NEW ROUTE - DELETE TRANSACTION
+
+@app.route('/transaction/<int:transaction_id>/delete', methods=['POST'])
+@login_required
+def delete_transaction(transaction_id):
+    """
+    Deletes a specific transaction from the database.
+    Only allows the owner of the transaction to perform the deletion.
+    """
+    
+    # 1. Find the transaction by its ID
+    # We also query for the user_id to ensure it's a valid query
+    transaction_to_delete = Transaction.query.get_or_404(transaction_id)
+    
+    # 2. Security Check: Verify the transaction belongs to the logged-in user
+    if transaction_to_delete.user_id != current_user.id:
+        flash('You do not have permission to delete this transaction.', 'danger')
+        # Abort with a "Forbidden" error if someone tries to be sneaky
+        abort(403) 
+
+    # 3. If the user is the owner, delete the transaction
+    try:
+        db.session.delete(transaction_to_delete)
+        db.session.commit()
+        flash('Transaction deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting transaction: {e}', 'danger')
+
+    # 4. Redirect back to the dashboard
+    return redirect(url_for('dashboard'))
 
 @app.route('/categories', methods=['GET', 'POST'])
 @login_required  # This is the decorator to protect the route

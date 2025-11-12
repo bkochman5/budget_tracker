@@ -47,6 +47,7 @@
                         <th>Category</th>
                         <th>Type</th>
                         <th>Amount</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,10 +64,15 @@
                                 {% endif %}
                             </td>
                             <td>£{{ "%.2f"|format(transaction.amount) }}</td>
+                            <td>
+                                <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </td>
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="5">You have no transactions yet.</td>
+                            <td colspan="6">You have no transactions yet.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
