@@ -247,44 +247,54 @@ def categories():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # This function  handle both GET (display form) and POST (submit form)
-
+    # If user is already logged in, send them to the dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+        
     if request.method == 'POST':
-        # --- This is the POST logic ---
         # 1. Get data from the form
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-
-        # 2. Hash the password for security
+        
+        
+        # 2. Proactively check if username or email already exists
+        user_exists = User.query.filter_by(username=username).first()
+        email_exists = User.query.filter_by(email=email).first()
+        
+        if user_exists:
+            flash('Username already taken. Please choose a different one.', 'danger')
+            return redirect(url_for('register'))
+            
+        if email_exists:
+            flash('Email address already registered. Please log in.', 'danger')
+            return redirect(url_for('register'))
+            
+                
+        # 3. Hash the password
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-
-        # 3. Create a new User object and save to database
+        
+        # 4. Create a new User object
         new_user = User(
             username=username, 
             email=email, 
             password_hash=hashed_password
         )
-
+        
+        # 5. Add to database (the try/except is still a good failsafe)
         try:
-            # Add the new user to the session and commit
             db.session.add(new_user)
             db.session.commit()
-
-            # Send a success message to the user
+            
             flash('Account created successfully! You can now log in.', 'success')
-
-            # Redirect to the homepage
-            return redirect(url_for('home'))
-
+            return redirect(url_for('login')) # Send them to login after registering
+            
         except Exception as e:
-            # This 'except' block will catch errors, e.g., if the username is already taken
-            db.session.rollback() # Rollback the changes
-            flash(f'Error creating account: {e}. Please try again.', 'danger')
+            db.session.rollback()
+            flash(f'An error occurred: {e}. Please try again.', 'danger')
             return redirect(url_for('register'))
 
     # --- This is the GET logic ---
-    # If the method is GET, just show the registration page
     return render_template('register.html')
 
 
