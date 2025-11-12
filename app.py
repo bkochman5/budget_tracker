@@ -239,6 +239,56 @@ def delete_transaction(transaction_id):
     # 4. Redirect back to the dashboard
     return redirect(url_for('dashboard'))
 
+# NEW ROUTE - EDIT TRANSACTION
+
+@app.route('/transaction/<int:transaction_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_transaction(transaction_id):
+    """
+    Handles editing a specific transaction.
+    GET: Shows the edit form pre-filled with data.
+    POST: Updates the transaction in the database.
+    """
+    
+    # 1. Get the transaction from the DB, ensuring it exists
+    transaction_to_edit = Transaction.query.get_or_404(transaction_id)
+    
+    # 2. Security Check: Verify the transaction belongs to the logged-in user
+    if transaction_to_edit.user_id != current_user.id:
+        flash('You do not have permission to edit this transaction.', 'danger')
+        abort(403) # Forbidden
+        
+    if request.method == 'POST':
+        # --- POST LOGIC: User has submitted the edit form ---
+        
+        # 1. Update the transaction object with the new form data
+        transaction_to_edit.amount = request.form['amount']
+        transaction_to_edit.description = request.form['description']
+        transaction_to_edit.category_id = request.form['category_id']
+        date_string = request.form['transaction_date']
+        transaction_to_edit.transaction_date = datetime.strptime(date_string, '%Y-%m-%d').date()
+        
+        # 2. Commit the changes to the database
+        try:
+            db.session.commit() # No 'add' needed, just 'commit' the changes
+            flash('Transaction updated successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating transaction: {e}', 'danger')
+            
+        # 3. Redirect back to the dashboard
+        return redirect(url_for('dashboard'))
+
+    # --- GET LOGIC: User is just visiting the edit page ---
+    
+    # We need to get the user's categories to populate the dropdown
+    user_categories = Category.query.filter_by(user_id=current_user.id).all()
+    
+    # Render the edit page, passing in the transaction and the categories
+    return render_template('edit_transaction.html', 
+                           transaction=transaction_to_edit, 
+                           categories=user_categories)
+
 @app.route('/categories', methods=['GET', 'POST'])
 @login_required  # This is the decorator to protect the route
 def categories():

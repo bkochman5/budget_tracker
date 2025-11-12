@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Transaction{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card shadow-sm p-4">
+            <div class="card-body">
+
+                <h1 class="card-title text-center mb-4">Edit Transaction</h1>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount (£)</label>
+                        <input type="number" step="0.01" id="amount" name="amount" 
+                               class="form-control" 
+                               value="{{ transaction.amount }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" id="description" name="description" 
+                               class="form-control" 
+                               value="{{ transaction.description }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select id="category" name="category_id" class="form-select" required>
+                            <option value="">-- Select a Category --</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" 
+                                        {% if category.id == transaction.category_id %}selected{% endif %}>
+                                    {{ category.name }} ({{ category.type }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" id="date" name="transaction_date" 
+                               class="form-control" 
+                               value="{{ transaction.transaction_date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 mb-3">Save Changes</button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary w-100">Cancel</a>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
