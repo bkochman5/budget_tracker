@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, abo
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash
 
@@ -50,7 +50,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     # --- Relationships ---
        
@@ -82,7 +82,7 @@ class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     description = db.Column(db.String(255))
-    transaction_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    transaction_date = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     
     # --- Foreign Keys ---
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -93,7 +93,7 @@ class Transaction(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     # This function is used by Flask-Login to reload the user object from the session
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 # --- 3.5. DEFINE ROUTES (WEB PAGES) ---
