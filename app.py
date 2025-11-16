@@ -14,24 +14,26 @@ load_dotenv()
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = 'secret_key_to_change' #session security and flash messages
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') #session security and flash messages
 
 # Database configuration
-db_password = os.getenv('DB_PASSWORD')
-db_name = 'budget_db'
-db_user = 'postgres'
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-# Check if the password was loaded
-if not db_password:
-    raise ValueError("No DB_PASSWORD set. Check your .env file.")
+if DATABASE_URL:
+    # If we are in production on Render, use the DATABASE_URL
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+else:
+    # If we are running locally, build the connection string as before
+    db_password = os.getenv('DB_PASSWORD')
+    db_name = 'budget_db'
+    db_user = 'postgres'
 
-# This line builds the connection string.
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{db_user}:{db_password}@localhost/{db_name}'
+    if not db_password:
+        raise ValueError("No DB_PASSWORD set for local development. Check your .env file.")
 
-# This setting silences a warning from SQLAlchemy
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{db_user}:{db_password}@localhost/{db_name}'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Initialize the SQLAlchemy database object. This is our 'db' connection.
 db = SQLAlchemy(app)
 
 bcrypt = Bcrypt(app)
